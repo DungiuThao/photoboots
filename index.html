@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>📸 Photobooth Gallery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Special+Elite&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --red:    #C8102E;
+      --red2:   #A00C24;
+      --red3:   #7A0519;
+      --cream:  #FFF5E4;
+      --ivory:  #FFF0D4;
+      --gold:   #F5C842;
+      --dark:   #1A0005;
+      --white:  #FFFFFF;
+      --gray:   #e8d5c0;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: var(--red);
+      background-image:
+        radial-gradient(ellipse at 20% 10%, rgba(255,255,255,0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 90%, rgba(0,0,0,0.25) 0%, transparent 50%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='4' height='4' fill='none'/%3E%3Ccircle cx='1' cy='1' r='0.6' fill='rgba(0,0,0,0.12)'/%3E%3C/svg%3E");
+      font-family: 'DM Sans', sans-serif;
+      color: var(--cream);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── SETUP BANNER ─── */
+    #setup-banner {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+      background: var(--gold);
+      color: var(--dark);
+      text-align: center;
+      padding: 10px 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+    #setup-banner a { color: var(--red3); font-weight: 700; }
+
+    /* ─── FILM STRIP BORDERS ─── */
+    .film-holes {
+      position: fixed; top: 0; bottom: 0;
+      width: 36px;
+      display: flex; flex-direction: column; justify-content: space-around; align-items: center;
+      background: var(--dark);
+      z-index: 10;
+      padding: 20px 0;
+    }
+    .film-holes.left  { left: 0; }
+    .film-holes.right { right: 0; }
+    .film-hole {
+      width: 16px; height: 22px;
+      background: var(--red2);
+      border-radius: 3px;
+      border: 2px solid rgba(255,255,255,0.08);
+    }
+
+    /* ─── MAIN WRAPPER ─── */
+    .wrapper {
+      margin: 0 36px;
+      padding: 0 16px;
+    }
+
+    /* ─── HEADER ─── */
+    header {
+      text-align: center;
+      padding: 56px 20px 36px;
+      position: relative;
+    }
+    .header-tape {
+      position: absolute; top: 32px; left: 50%; transform: translateX(-50%);
+      background: rgba(245,200,66,0.75);
+      width: 120px; height: 28px;
+      border-radius: 2px;
+      z-index: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+    .header-kicker {
+      font-family: 'Special Elite', cursive;
+      font-size: 0.8rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 8px;
+      position: relative; z-index: 1;
+    }
+    h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(4rem, 12vw, 9rem);
+      line-height: 0.88;
+      letter-spacing: 0.04em;
+      color: var(--white);
+      text-shadow: 4px 4px 0 var(--red3), 8px 8px 20px rgba(0,0,0,0.5);
+      position: relative; z-index: 1;
+    }
+    h1 span { color: var(--gold); }
+    .header-sub {
+      font-family: 'Special Elite', cursive;
+      font-size: 0.95rem;
+      color: rgba(255,245,228,0.7);
+      margin-top: 14px;
+      letter-spacing: 0.08em;
+    }
+
+    /* ─── DIVIDER ─── */
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 8px 0 32px;
+      padding: 0 24px;
+    }
+    .divider-line { flex: 1; height: 2px; background: rgba(255,245,228,0.2); }
+    .divider-icon { font-size: 1.2rem; }
+
+    /* ─── UPLOAD ZONE ─── */
+    #upload-section {
+      max-width: 640px; margin: 0 auto 48px;
+    }
+    .upload-card {
+      background: rgba(26,0,5,0.45);
+      border: 2px dashed rgba(255,245,228,0.35);
+      border-radius: 12px;
+      padding: 36px 28px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative; overflow: hidden;
+    }
+    .upload-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,245,228,0.03) 0%, transparent 100%);
+    }
+    .upload-card:hover, .upload-card.drag-over {
+      border-color: var(--gold);
+      background: rgba(26,0,5,0.6);
+      transform: scale(1.01);
+    }
+    .upload-icon { font-size: 3rem; margin-bottom: 12px; display: block; }
+    .upload-card h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      letter-spacing: 0.06em;
+      color: var(--cream);
+      margin-bottom: 6px;
+    }
+    .upload-card p {
+      font-size: 0.85rem;
+      color: rgba(255,245,228,0.55);
+      margin-bottom: 20px;
+    }
+    #file-input { display: none; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--cream);
+      color: var(--red3);
+      border: none;
+      padding: 12px 28px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.15rem;
+      letter-spacing: 0.1em;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    .btn:hover { background: var(--gold); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+    .btn:active { transform: translateY(0); }
+    .btn-outline {
+      background: transparent;
+      color: var(--cream);
+      border: 2px solid rgba(255,245,228,0.5);
+      margin-left: 10px;
+    }
+    .btn-outline:hover { background: rgba(255,245,228,0.1); border-color: var(--cream); }
+
+    /* ─── PREVIEW BEFORE UPLOAD ─── */
+    #preview-area {
+      display: none;
+      margin-top: 20px;
+    }
+    #preview-img {
+      width: 100%; max-height: 320px;
+      object-fit: contain;
+      border-radius: 8px;
+      border: 3px solid rgba(255,245,228,0.2);
+      margin-bottom: 14px;
+    }
+    .name-input-wrap {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+    }
+    .name-input-wrap input {
+      flex: 1;
+      background: rgba(255,255,255,0.1);
+      border: 1.5px solid rgba(255,245,228,0.3);
+      border-radius: 6px;
+      padding: 10px 14px;
+      color: var(--cream);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    .name-input-wrap input::placeholder { color: rgba(255,245,228,0.4); }
+    .name-input-wrap input:focus { border-color: var(--gold); }
+
+    /* ─── PROGRESS ─── */
+    #progress-wrap { display: none; margin-top: 14px; }
+    #progress-bar-track {
+      height: 6px; background: rgba(255,255,255,0.12); border-radius: 99px; overflow: hidden;
+    }
+    #progress-bar-fill {
+      height: 100%; width: 0%; background: var(--gold);
+      border-radius: 99px;
+      transition: width 0.3s;
+    }
+    #progress-label { font-size: 0.78rem; color: rgba(255,245,228,0.6); margin-top: 6px; text-align: left; }
+
+    /* ─── TOAST ─── */
+    #toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: var(--dark); color: var(--cream);
+      padding: 12px 24px; border-radius: 40px;
+      font-size: 0.9rem; font-weight: 500;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+      z-index: 9999;
+      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+      white-space: nowrap;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+    #toast.success::before { content: '✅ '; }
+    #toast.error::before   { content: '❌ '; }
+
+    /* ─── GALLERY ─── */
+    #gallery-section { max-width: 1100px; margin: 0 auto; padding-bottom: 80px; }
+    .section-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.6rem;
+      letter-spacing: 0.08em;
+      margin-bottom: 20px;
+      color: var(--white);
+      display: flex; align-items: center; gap: 14px;
+    }
+    .section-title::after { content: ''; flex: 1; height: 2px; background: rgba(255,245,228,0.2); }
+
+    #gallery-controls {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    #refresh-btn {
+      background: rgba(255,245,228,0.1);
+      border: 1.5px solid rgba(255,245,228,0.3);
+      color: var(--cream);
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    #refresh-btn:hover { background: rgba(255,245,228,0.18); }
+    #refresh-btn.spinning .spin-icon { display: inline-block; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin-icon { display: inline-block; }
+
+    #photo-count {
+      font-size: 0.82rem;
+      color: rgba(255,245,228,0.5);
+      margin-left: auto;
+    }
+
+    /* Masonry grid */
+    #gallery-grid {
+      columns: 4 220px;
+      column-gap: 16px;
+    }
+    .photo-card {
+      break-inside: avoid;
+      margin-bottom: 16px;
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: zoom-in;
+      background: rgba(26,0,5,0.5);
+      animation: fadeUp 0.5s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .photo-card img {
+      width: 100%; display: block;
+      transition: transform 0.4s ease;
+    }
+    .photo-card:hover img { transform: scale(1.05); }
+    .photo-card .overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(26,0,5,0.85) 0%, transparent 55%);
+      opacity: 0; transition: opacity 0.3s;
+      display: flex; align-items: flex-end; padding: 14px;
+    }
+    .photo-card:hover .overlay { opacity: 1; }
+    .overlay-name {
+      font-family: 'Special Elite', cursive;
+      font-size: 0.88rem;
+      color: var(--cream);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    }
+
+    /* skeleton loader */
+    .skeleton {
+      background: rgba(255,255,255,0.07);
+      border-radius: 8px;
+      margin-bottom: 16px;
+      break-inside: avoid;
+      animation: shimmer 1.4s ease infinite;
+    }
+    @keyframes shimmer {
+      0%, 100% { opacity: 0.5; }
+      50%       { opacity: 1; }
+    }
+
+    #empty-state {
+      display: none;
+      text-align: center;
+      padding: 60px 20px;
+      color: rgba(255,245,228,0.45);
+    }
+    #empty-state .big-icon { font-size: 4rem; margin-bottom: 12px; }
+    #empty-state p { font-size: 1rem; }
+
+    /* ─── LIGHTBOX ─── */
+    #lightbox {
+      display: none; position: fixed; inset: 0; z-index: 1000;
+      background: rgba(10,0,3,0.92);
+      align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    #lightbox.active { display: flex; }
+    #lightbox-img {
+      max-width: 90vw; max-height: 90vh;
+      border-radius: 6px;
+      box-shadow: 0 20px 80px rgba(0,0,0,0.9);
+      animation: zoomIn 0.25s ease;
+    }
+    @keyframes zoomIn {
+      from { opacity: 0; transform: scale(0.92); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    #lightbox-close {
+      position: absolute; top: 20px; right: 24px;
+      background: rgba(255,255,255,0.1);
+      border: none; color: var(--cream);
+      width: 42px; height: 42px; border-radius: 50%;
+      font-size: 1.4rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s;
+    }
+    #lightbox-close:hover { background: rgba(255,255,255,0.2); }
+    #lightbox-caption {
+      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      font-family: 'Special Elite', cursive;
+      color: rgba(255,245,228,0.7);
+      font-size: 0.9rem;
+      text-align: center;
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 0.75rem;
+      color: rgba(255,245,228,0.3);
+      border-top: 1px solid rgba(255,245,228,0.1);
+    }
+
+    @media (max-width: 600px) {
+      .wrapper { margin: 0 28px; }
+      #gallery-grid { columns: 2 140px; }
+      h1 { font-size: 3.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── SETUP BANNER ─── -->
+<div id="setup-banner">
+  ⚠️ Chưa cấu hình Cloudinary. Hãy mở file <code>index.html</code> và điền
+  <strong>CLOUD_NAME</strong> và <strong>UPLOAD_PRESET</strong> vào phần CONFIG ở đầu script.
+  <a href="https://cloudinary.com/console" target="_blank">Lấy thông tin tại đây →</a>
+</div>
+
+<!-- Film strip decorations -->
+<div class="film-holes left" id="filmLeft"></div>
+<div class="film-holes right" id="filmRight"></div>
+
+<div class="wrapper">
+
+  <!-- ─── HEADER ─── -->
+  <header>
+    <div class="header-tape"></div>
+    <div class="header-kicker">✦ Bộ sưu tập kỷ niệm ✦</div>
+    <h1>PHOTO<span>BOOTH</span></h1>
+    <p class="header-sub">Chụp. Chia sẻ. Lưu giữ mãi mãi.</p>
+  </header>
+
+  <div class="divider">
+    <div class="divider-line"></div>
+    <span class="divider-icon">📸</span>
+    <div class="divider-line"></div>
+  </div>
+
+  <!-- ─── UPLOAD ─── -->
+  <section id="upload-section">
+    <div class="upload-card" id="drop-zone">
+      <span class="upload-icon">🖼️</span>
+      <h2>Thêm ảnh của bạn</h2>
+      <p>Kéo thả ảnh vào đây hoặc nhấn để chọn</p>
+      <input type="file" id="file-input" accept="image/*" multiple />
+      <button class="btn" onclick="document.getElementById('file-input').click()">
+        📂 Chọn ảnh
+      </button>
+    </div>
+
+    <div id="preview-area">
+      <img id="preview-img" src="" alt="preview" />
+      <div class="name-input-wrap">
+        <input type="text" id="uploader-name" placeholder="Tên của bạn (tuỳ chọn)" maxlength="40" />
+      </div>
+      <div>
+        <button class="btn" id="upload-btn" onclick="uploadFile()">🚀 Đăng ảnh lên</button>
+        <button class="btn btn-outline" onclick="cancelUpload()">✕ Huỷ</button>
+      </div>
+
+      <div id="progress-wrap">
+        <div id="progress-bar-track"><div id="progress-bar-fill"></div></div>
+        <div id="progress-label">Đang tải lên…</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── GALLERY ─── -->
+  <section id="gallery-section">
+    <div class="section-title">🎞 Bức ảnh mọi người</div>
+    <div id="gallery-controls">
+      <button id="refresh-btn" onclick="loadGallery()">
+        <span class="spin-icon">↺</span> Làm mới
+      </button>
+      <span id="photo-count"></span>
+    </div>
+    <div id="gallery-grid"></div>
+    <div id="empty-state">
+      <div class="big-icon">🪄</div>
+      <p>Chưa có ảnh nào. Hãy là người đầu tiên đăng ảnh!</p>
+    </div>
+  </section>
+
+</div><!-- /wrapper -->
+
+<!-- ─── LIGHTBOX ─── -->
+<div id="lightbox">
+  <button id="lightbox-close" onclick="closeLightbox()">×</button>
+  <img id="lightbox-img" src="" alt="" />
+  <div id="lightbox-caption"></div>
+</div>
+
+<!-- ─── TOAST ─── -->
+<div id="toast"></div>
+
+<footer>📸 Photobooth Gallery · Powered by Cloudinary</footer>
+
+<script>
+  /* ══════════════════════════════════════════════
+     ⚙️  CẤU HÌNH — chỉnh sửa 2 dòng dưới đây
+     ══════════════════════════════════════════════ */
+  const CLOUD_NAME    = 'YOUR_CLOUD_NAME';    // ← thay bằng Cloud Name của bạn
+  const UPLOAD_PRESET = 'YOUR_UPLOAD_PRESET'; // ← thay bằng unsigned Upload Preset
+  const GALLERY_TAG   = 'photobooth2025';     // ← tag chung cho tất cả ảnh
+  /* ══════════════════════════════════════════════ */
+
+  // ─── Kiểm tra config ───
+  if (CLOUD_NAME === 'YOUR_CLOUD_NAME' || UPLOAD_PRESET === 'YOUR_UPLOAD_PRESET') {
+    document.getElementById('setup-banner').style.display = 'block';
+    document.querySelector('body').style.paddingTop = '40px';
+  }
+
+  // ─── Film holes ───
+  function buildFilmHoles() {
+    ['filmLeft','filmRight'].forEach(id => {
+      const el = document.getElementById(id);
+      for (let i = 0; i < 22; i++) {
+        const d = document.createElement('div');
+        d.className = 'film-hole';
+        el.appendChild(d);
+      }
+    });
+  }
+  buildFilmHoles();
+
+  // ─── Drag & drop ───
+  const dropZone = document.getElementById('drop-zone');
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const files = e.dataTransfer.files;
+    if (files.length) handleFileSelect(files[0]);
+  });
+  document.getElementById('file-input').addEventListener('change', e => {
+    if (e.target.files.length) handleFileSelect(e.target.files[0]);
+  });
+
+  let selectedFile = null;
+
+  function handleFileSelect(file) {
+    if (!file.type.startsWith('image/')) { showToast('Chỉ chấp nhận file ảnh!', 'error'); return; }
+    selectedFile = file;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      document.getElementById('preview-img').src = ev.target.result;
+      document.getElementById('preview-area').style.display = 'block';
+      document.getElementById('progress-wrap').style.display = 'none';
+      document.getElementById('progress-bar-fill').style.width = '0%';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function cancelUpload() {
+    selectedFile = null;
+    document.getElementById('preview-area').style.display = 'none';
+    document.getElementById('file-input').value = '';
+    document.getElementById('uploader-name').value = '';
+  }
+
+  // ─── Upload ───
+  async function uploadFile() {
+    if (!selectedFile) return;
+    if (CLOUD_NAME === 'YOUR_CLOUD_NAME') { showToast('Hãy cấu hình Cloudinary trước!', 'error'); return; }
+
+    const name   = (document.getElementById('uploader-name').value.trim() || 'Ẩn danh').replace(/[^a-zA-Z0-9À-ỹ ]/g, '');
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('upload_preset', UPLOAD_PRESET);
+    formData.append('tags', GALLERY_TAG);
+    formData.append('context', `uploader=${name}`);
+    formData.append('folder', 'photobooth');
+
+    document.getElementById('upload-btn').disabled = true;
+    document.getElementById('progress-wrap').style.display = 'block';
+    setProgress(5, 'Đang chuẩn bị…');
+
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.upload.onprogress = e => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 90);
+          setProgress(pct, `Đang tải lên… ${pct}%`);
+        }
+      };
+      xhr.onload = () => {
+        const res = JSON.parse(xhr.responseText);
+        if (xhr.status === 200) {
+          setProgress(100, 'Hoàn tất! ✨');
+          showToast('Đăng ảnh thành công! 🎉', 'success');
+          setTimeout(() => {
+            cancelUpload();
+            loadGallery();
+          }, 1200);
+        } else {
+          throw new Error(res.error?.message || 'Upload thất bại');
+        }
+        document.getElementById('upload-btn').disabled = false;
+      };
+      xhr.onerror = () => { showToast('Lỗi kết nối!', 'error'); document.getElementById('upload-btn').disabled = false; };
+      xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`);
+      xhr.send(formData);
+    } catch (err) {
+      showToast(err.message, 'error');
+      document.getElementById('upload-btn').disabled = false;
+    }
+  }
+
+  function setProgress(pct, label) {
+    document.getElementById('progress-bar-fill').style.width = pct + '%';
+    document.getElementById('progress-label').textContent = label;
+  }
+
+  // ─── Gallery ───
+  async function loadGallery() {
+    if (CLOUD_NAME === 'YOUR_CLOUD_NAME') return;
+
+    const btn  = document.getElementById('refresh-btn');
+    const grid = document.getElementById('gallery-grid');
+    const empty = document.getElementById('empty-state');
+
+    btn.classList.add('spinning');
+    grid.innerHTML = '';
+    empty.style.display = 'none';
+
+    // Show skeletons
+    const skeletons = [180,240,160,220,200,170,250,190];
+    skeletons.forEach(h => {
+      const s = document.createElement('div');
+      s.className = 'skeleton';
+      s.style.height = h + 'px';
+      grid.appendChild(s);
+    });
+
+    try {
+      // Cloudinary tag-based listing (must enable "Resource list" in settings)
+      const url = `https://res.cloudinary.com/${CLOUD_NAME}/image/list/${GALLERY_TAG}.json`;
+      const res = await fetch(url + '?t=' + Date.now());
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      grid.innerHTML = '';
+      const resources = (data.resources || []).reverse();
+
+      if (resources.length === 0) {
+        empty.style.display = 'block';
+        document.getElementById('photo-count').textContent = '';
+      } else {
+        document.getElementById('photo-count').textContent = `${resources.length} ảnh`;
+        resources.forEach((r, i) => {
+          const card = createPhotoCard(r, i);
+          grid.appendChild(card);
+        });
+      }
+    } catch (e) {
+      grid.innerHTML = '';
+      grid.innerHTML = `<div style="color:rgba(255,245,228,0.5);padding:20px;font-size:0.85rem;">
+        ⚠️ Không tải được gallery. Đảm bảo đã bật <strong>Resource list</strong> trong Cloudinary Settings →
+        Security → Restricted media types. <br><br>Chi tiết: ${e.message}
+      </div>`;
+    }
+    btn.classList.remove('spinning');
+  }
+
+  function createPhotoCard(resource, index) {
+    const card = document.createElement('div');
+    card.className = 'photo-card';
+    card.style.animationDelay = (index * 60) + 'ms';
+
+    // Build optimised URL
+    const baseUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload`;
+    const transforms = 'q_auto,f_auto,w_600';
+    const imgUrl = `${baseUrl}/${transforms}/${resource.public_id}.jpg`;
+
+    // Parse context for uploader name
+    let uploaderName = '';
+    if (resource.context?.custom?.uploader) {
+      uploaderName = '— ' + resource.context.custom.uploader;
+    }
+
+    card.innerHTML = `
+      <img src="${imgUrl}" alt="Photobooth photo" loading="lazy" />
+      <div class="overlay">
+        <span class="overlay-name">${uploaderName || '— Ẩn danh'}</span>
+      </div>
+    `;
+    card.addEventListener('click', () => openLightbox(
+      `${baseUrl}/q_auto,f_auto,w_1400/${resource.public_id}.jpg`,
+      uploaderName
+    ));
+    return card;
+  }
+
+  // ─── Lightbox ───
+  function openLightbox(src, caption) {
+    document.getElementById('lightbox-img').src = src;
+    document.getElementById('lightbox-caption').textContent = caption;
+    document.getElementById('lightbox').classList.add('active');
+  }
+  function closeLightbox() { document.getElementById('lightbox').classList.remove('active'); }
+  document.getElementById('lightbox').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeLightbox();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+  // ─── Toast ───
+  function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = type;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }
+
+  // ─── Init ───
+  loadGallery();
+</script>
+</body>
+</html>
