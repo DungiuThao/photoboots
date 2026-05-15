@@ -21,7 +21,6 @@
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     html { scroll-behavior: smooth; }
 
     body {
@@ -68,10 +67,7 @@
     }
 
     /* ─── MAIN WRAPPER ─── */
-    .wrapper {
-      margin: 0 36px;
-      padding: 0 16px;
-    }
+    .wrapper { margin: 0 36px; padding: 0 16px; }
 
     /* ─── HEADER ─── */
     header {
@@ -124,9 +120,7 @@
     .divider-icon { font-size: 1.2rem; }
 
     /* ─── UPLOAD ZONE ─── */
-    #upload-section {
-      max-width: 640px; margin: 0 auto 48px;
-    }
+    #upload-section { max-width: 640px; margin: 0 auto 48px; }
     .upload-card {
       background: rgba(26,0,5,0.45);
       border: 2px dashed rgba(255,245,228,0.35);
@@ -178,6 +172,7 @@
     }
     .btn:hover { background: var(--gold); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
     .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
     .btn-outline {
       background: transparent;
       color: var(--cream);
@@ -187,10 +182,7 @@
     .btn-outline:hover { background: rgba(255,245,228,0.1); border-color: var(--cream); }
 
     /* ─── PREVIEW BEFORE UPLOAD ─── */
-    #preview-area {
-      display: none;
-      margin-top: 20px;
-    }
+    #preview-area { display: none; margin-top: 20px; }
     #preview-img {
       width: 100%; max-height: 320px;
       object-fit: contain;
@@ -223,7 +215,7 @@
     #progress-bar-fill {
       height: 100%; width: 0%; background: var(--gold);
       border-radius: 99px;
-      transition: width 0.3s;
+      transition: width 0.4s ease;
     }
     #progress-label { font-size: 0.78rem; color: rgba(255,245,228,0.6); margin-top: 6px; text-align: left; }
 
@@ -272,7 +264,7 @@
       display: flex; align-items: center; gap: 6px;
     }
     #refresh-btn:hover { background: rgba(255,245,228,0.18); }
-    #refresh-btn.spinning .spin-icon { display: inline-block; animation: spin 0.8s linear infinite; }
+    #refresh-btn.spinning .spin-icon { animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .spin-icon { display: inline-block; }
 
@@ -283,10 +275,7 @@
     }
 
     /* Masonry grid */
-    #gallery-grid {
-      columns: 4 220px;
-      column-gap: 16px;
-    }
+    #gallery-grid { columns: 4 220px; column-gap: 16px; }
     .photo-card {
       break-inside: avoid;
       margin-bottom: 16px;
@@ -301,10 +290,7 @@
       from { opacity: 0; transform: translateY(24px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    .photo-card img {
-      width: 100%; display: block;
-      transition: transform 0.4s ease;
-    }
+    .photo-card img { width: 100%; display: block; transition: transform 0.4s ease; }
     .photo-card:hover img { transform: scale(1.05); }
     .photo-card .overlay {
       position: absolute; inset: 0;
@@ -486,9 +472,9 @@
   /* ══════════════════════════════════════════════
      ⚙️  CẤU HÌNH — chỉnh sửa 2 dòng dưới đây
      ══════════════════════════════════════════════ */
-  const CLOUD_NAME    = 'dloo0ocmq';    // ← thay bằng Cloud Name của bạn
-  const UPLOAD_PRESET = 'hmfflyct'; // ← thay bằng unsigned Upload Preset
-  const GALLERY_TAG   = 'photobooth';     // ← tag chung cho tất cả ảnh
+  const CLOUD_NAME    = 'dloo0ocmq';     // ← Cloud Name của bạn
+  const UPLOAD_PRESET = 'photobooth_preset';      // ← unsigned Upload Preset
+  const GALLERY_TAG   = 'photobooth';    // ← tag chung cho tất cả ảnh
   /* ══════════════════════════════════════════════ */
 
   // ─── Kiểm tra config ───
@@ -546,88 +532,100 @@
     document.getElementById('uploader-name').value = '';
   }
 
+  // ─── BUG FIX 1: Hàm setProgress bị thiếu hoàn toàn trong bản gốc ───
+  function setProgress(percent, label) {
+    document.getElementById('progress-bar-fill').style.width = percent + '%';
+    document.getElementById('progress-label').textContent = label;
+  }
+
   // ─── Upload ───
   async function uploadFile() {
-  if (!selectedFile) {
-    showToast('Hãy chọn ảnh trước!', 'error');
-    return;
-  }
-
-  // kiểm tra config
-  if (!CLOUD_NAME || !UPLOAD_PRESET) {
-    showToast('Thiếu cấu hình Cloudinary!', 'error');
-    return;
-  }
-
-  const uploadBtn = document.getElementById('upload-btn');
-
-  const name =
-    (document.getElementById('uploader-name').value.trim() || 'Ẩn danh')
-    .replace(/[^a-zA-Z0-9À-ỹ ]/g, '');
-
-  const formData = new FormData();
-  formData.append('file', selectedFile);
-  formData.append('upload_preset', UPLOAD_PRESET);
-  formData.append('tags', GALLERY_TAG);
-  formData.append('folder', 'photobooth');
-  formData.append('context', `uploader=${name}`);
-
-  uploadBtn.disabled = true;
-
-  document.getElementById('progress-wrap').style.display = 'block';
-
-  setProgress(10, 'Đang chuẩn bị upload...');
-
-  try {
-
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
-      {
-        method: 'POST',
-        body: formData
-      }
-    );
-
-    const data = await response.json();
-
-    // debug
-    console.log('Cloudinary response:', data);
-
-    if (!response.ok) {
-      throw new Error(data.error?.message || 'Upload thất bại');
+    if (!selectedFile) {
+      showToast('Hãy chọn ảnh trước!', 'error');
+      return;
+    }
+    if (!CLOUD_NAME || !UPLOAD_PRESET) {
+      showToast('Thiếu cấu hình Cloudinary!', 'error');
+      return;
     }
 
-    setProgress(100, 'Hoàn tất ✨');
+    const uploadBtn = document.getElementById('upload-btn');
+    const name = (document.getElementById('uploader-name').value.trim() || 'Ẩn danh')
+      .replace(/[^a-zA-Z0-9À-ỹ ]/g, '');
 
-    showToast('Đăng ảnh thành công 🎉', 'success');
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('upload_preset', UPLOAD_PRESET);
+    formData.append('tags', GALLERY_TAG);
+    formData.append('folder', 'photobooth');
+    formData.append('context', `uploader=${name}`);
 
-    setTimeout(() => {
-      cancelUpload();
-      loadGallery();
-    }, 1200);
+    uploadBtn.disabled = true;
+    document.getElementById('progress-wrap').style.display = 'block';
+    setProgress(10, 'Đang chuẩn bị upload...');
 
-  } catch (err) {
+    // ─── BUG FIX 2: Dùng XMLHttpRequest để có progress thực ───
+    // fetch() không hỗ trợ upload progress, phải dùng XHR
+    try {
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
 
-    console.error(err);
+        xhr.upload.addEventListener('progress', e => {
+          if (e.lengthComputable) {
+            const pct = Math.round((e.loaded / e.total) * 90);
+            setProgress(pct, `Đang tải lên… ${pct}%`);
+          }
+        });
 
-    showToast(
-      err.message || 'Không thể upload ảnh',
-      'error'
-    );
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            const data = JSON.parse(xhr.responseText);
+            if (data.error) {
+              reject(new Error(data.error.message));
+            } else {
+              resolve(data);
+            }
+          } else {
+            let errMsg = `Upload thất bại (HTTP ${xhr.status})`;
+            try {
+              const errData = JSON.parse(xhr.responseText);
+              errMsg = errData.error?.message || errMsg;
+            } catch(_) {}
+            reject(new Error(errMsg));
+          }
+        });
 
-  } finally {
+        xhr.addEventListener('error', () => reject(new Error('Lỗi kết nối mạng')));
+        xhr.addEventListener('timeout', () => reject(new Error('Upload timeout')));
 
-    uploadBtn.disabled = false;
+        xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`);
+        xhr.timeout = 60000; // 60 giây
+        xhr.send(formData);
+      });
 
+      setProgress(100, 'Hoàn tất ✨');
+      showToast('Đăng ảnh thành công 🎉', 'success');
+
+      setTimeout(() => {
+        cancelUpload();
+        loadGallery();
+      }, 1200);
+
+    } catch (err) {
+      console.error('Upload error:', err);
+      showToast(err.message || 'Không thể upload ảnh', 'error');
+      setProgress(0, '');
+    } finally {
+      uploadBtn.disabled = false;
+    }
   }
-}
 
   // ─── Gallery ───
   async function loadGallery() {
     if (CLOUD_NAME === 'YOUR_CLOUD_NAME') return;
 
-    const btn  = document.getElementById('refresh-btn');
-    const grid = document.getElementById('gallery-grid');
+    const btn   = document.getElementById('refresh-btn');
+    const grid  = document.getElementById('gallery-grid');
     const empty = document.getElementById('empty-state');
 
     btn.classList.add('spinning');
@@ -644,12 +642,19 @@
     });
 
     try {
-      // Cloudinary tag-based listing (must enable "Resource list" in settings)
+      // Cloudinary tag-based listing
+      // Yêu cầu: Settings → Security → Restricted media types → bỏ tick "Resource list"
       const url = `https://res.cloudinary.com/${CLOUD_NAME}/image/list/${GALLERY_TAG}.json`;
       const res = await fetch(url + '?t=' + Date.now());
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
 
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          throw new Error('Cần bật "Resource list": Cloudinary Settings → Security → Restricted media types → bỏ tick Resource list');
+        }
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
       grid.innerHTML = '';
       const resources = (data.resources || []).reverse();
 
@@ -664,12 +669,15 @@
         });
       }
     } catch (e) {
-      grid.innerHTML = '';
-      grid.innerHTML = `<div style="color:rgba(255,245,228,0.5);padding:20px;font-size:0.85rem;">
-        ⚠️ Không tải được gallery. Đảm bảo đã bật <strong>Resource list</strong> trong Cloudinary Settings →
-        Security → Restricted media types. <br><br>Chi tiết: ${e.message}
-      </div>`;
+      grid.innerHTML = `
+        <div style="color:rgba(255,245,228,0.6);padding:24px;font-size:0.85rem;line-height:1.7;background:rgba(0,0,0,0.2);border-radius:8px;">
+          ⚠️ <strong>Không tải được gallery</strong><br><br>
+          ${e.message}<br><br>
+          <strong>Cách fix:</strong> Cloudinary Dashboard → Settings → Security →
+          Restricted media types → <strong>bỏ tick "Resource list"</strong> → Save.
+        </div>`;
     }
+
     btn.classList.remove('spinning');
   }
 
@@ -678,12 +686,10 @@
     card.className = 'photo-card';
     card.style.animationDelay = (index * 60) + 'ms';
 
-    // Build optimised URL
     const baseUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload`;
     const transforms = 'q_auto,f_auto,w_600';
     const imgUrl = `${baseUrl}/${transforms}/${resource.public_id}`;
 
-    // Parse context for uploader name
     let uploaderName = '';
     if (resource.context?.custom?.uploader) {
       uploaderName = '— ' + resource.context.custom.uploader;
