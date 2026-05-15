@@ -734,7 +734,12 @@
         document.getElementById('photo-count').textContent = `${resources.length} ảnh`;
         resources.forEach((r, i) => grid.appendChild(createPhotoCard(r, i)));
       }
-    } catch (e) 
+    } catch (e) {
+      console.error('Gallery load error:', e);
+      grid.innerHTML = '';
+      empty.style.display = 'block';
+      showToast('Không tải được gallery: ' + e.message, 'error');
+    }
 
     btn.classList.remove('spinning');
   }
