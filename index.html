@@ -121,6 +121,8 @@
 
     /* ─── UPLOAD ZONE ─── */
     #upload-section { max-width: 640px; margin: 0 auto 48px; }
+
+    /* FIX: upload-card là label để click native mở file picker */
     .upload-card {
       background: rgba(26,0,5,0.45);
       border: 2px dashed rgba(255,245,228,0.35);
@@ -130,31 +132,60 @@
       cursor: pointer;
       transition: all 0.25s ease;
       position: relative; overflow: hidden;
+      display: block; /* label cần display block */
+      user-select: none;
     }
     .upload-card::before {
       content: '';
       position: absolute; inset: 0;
       background: linear-gradient(135deg, rgba(255,245,228,0.03) 0%, transparent 100%);
+      pointer-events: none;
     }
     .upload-card:hover, .upload-card.drag-over {
       border-color: var(--gold);
       background: rgba(26,0,5,0.6);
       transform: scale(1.01);
     }
-    .upload-icon { font-size: 3rem; margin-bottom: 12px; display: block; }
+    .upload-icon { font-size: 3rem; margin-bottom: 12px; display: block; pointer-events: none; }
     .upload-card h2 {
       font-family: 'Bebas Neue', sans-serif;
       font-size: 2rem;
       letter-spacing: 0.06em;
       color: var(--cream);
       margin-bottom: 6px;
+      pointer-events: none;
     }
     .upload-card p {
       font-size: 0.85rem;
       color: rgba(255,245,228,0.55);
       margin-bottom: 20px;
+      pointer-events: none;
     }
-    #file-input { display: none; }
+
+    /* FIX: file input ẩn đúng cách */
+    #file-input {
+      position: absolute;
+      width: 1px; height: 1px;
+      opacity: 0;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+    }
+
+    .btn-fake {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--cream);
+      color: var(--red3);
+      padding: 12px 28px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.15rem;
+      letter-spacing: 0.1em;
+      border-radius: 6px;
+      pointer-events: none; /* label xử lý click */
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      transition: all 0.2s;
+    }
+    .upload-card:hover .btn-fake { background: var(--gold); }
 
     .btn {
       display: inline-flex; align-items: center; gap: 8px;
@@ -179,7 +210,7 @@
       border: 2px solid rgba(255,245,228,0.5);
       margin-left: 10px;
     }
-    .btn-outline:hover { background: rgba(255,245,228,0.1); border-color: var(--cream); }
+    .btn-outline:hover { background: rgba(255,245,228,0.1); border-color: var(--cream); transform: none; }
 
     /* ─── PREVIEW BEFORE UPLOAD ─── */
     #preview-area { display: none; margin-top: 20px; }
@@ -411,15 +442,19 @@
 
   <!-- ─── UPLOAD ─── -->
   <section id="upload-section">
-    <div class="upload-card" id="drop-zone">
+
+    <!--
+      FIX CHÍNH: Dùng <label for="file-input"> thay vì <div> + onclick
+      Đây là cách chuẩn nhất để mở file picker trên mọi trình duyệt & mobile.
+      Khi preview hiện ra, label bị ẩn để tránh click nhầm.
+    -->
+    <label class="upload-card" id="drop-zone" for="file-input">
+      <input type="file" id="file-input" accept="image/*" />
       <span class="upload-icon">🖼️</span>
       <h2>Thêm ảnh của bạn</h2>
       <p>Kéo thả ảnh vào đây hoặc nhấn để chọn</p>
-      <input type="file" id="file-input" accept="image/*" multiple />
-      <button class="btn" onclick="document.getElementById('file-input').click()">
-        📂 Chọn ảnh
-      </button>
-    </div>
+      <span class="btn-fake">📂 Chọn ảnh</span>
+    </label>
 
     <div id="preview-area">
       <img id="preview-img" src="" alt="preview" />
@@ -427,8 +462,8 @@
         <input type="text" id="uploader-name" placeholder="Tên của bạn (tuỳ chọn)" maxlength="40" />
       </div>
       <div>
-        <button class="btn" id="upload-btn" onclick="uploadFile()">🚀 Đăng ảnh lên</button>
-        <button class="btn btn-outline" onclick="cancelUpload()">✕ Huỷ</button>
+        <button class="btn" id="upload-btn">🚀 Đăng ảnh lên</button>
+        <button class="btn btn-outline" id="cancel-btn">✕ Huỷ</button>
       </div>
 
       <div id="progress-wrap">
@@ -442,7 +477,7 @@
   <section id="gallery-section">
     <div class="section-title">🎞 Bức ảnh mọi người</div>
     <div id="gallery-controls">
-      <button id="refresh-btn" onclick="loadGallery()">
+      <button id="refresh-btn">
         <span class="spin-icon">↺</span> Làm mới
       </button>
       <span id="photo-count"></span>
@@ -458,7 +493,7 @@
 
 <!-- ─── LIGHTBOX ─── -->
 <div id="lightbox">
-  <button id="lightbox-close" onclick="closeLightbox()">×</button>
+  <button id="lightbox-close">×</button>
   <img id="lightbox-img" src="" alt="" />
   <div id="lightbox-caption"></div>
 </div>
@@ -472,9 +507,9 @@
   /* ══════════════════════════════════════════════
      ⚙️  CẤU HÌNH — chỉnh sửa 2 dòng dưới đây
      ══════════════════════════════════════════════ */
-  const CLOUD_NAME    = 'dloo0ocmq';     // ← Cloud Name của bạn
-  const UPLOAD_PRESET = 'photobooth_preset';      // ← unsigned Upload Preset
-  const GALLERY_TAG   = 'photobooth';    // ← tag chung cho tất cả ảnh
+  const CLOUD_NAME    = 'dloo0ocmq';          // ← Cloud Name của bạn
+  const UPLOAD_PRESET = 'photobooth_preset';  // ← unsigned Upload Preset
+  const GALLERY_TAG   = 'photobooth';         // ← tag chung cho tất cả ảnh
   /* ══════════════════════════════════════════════ */
 
   // ─── Kiểm tra config ───
@@ -496,62 +531,98 @@
   }
   buildFilmHoles();
 
-  // ─── Drag & drop ───
-  const dropZone = document.getElementById('drop-zone');
-  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  // ─── Elements ───
+  const dropZone    = document.getElementById('drop-zone');
+  const fileInput   = document.getElementById('file-input');
+  const previewArea = document.getElementById('preview-area');
+  const previewImg  = document.getElementById('preview-img');
+  const uploadBtn   = document.getElementById('upload-btn');
+  const cancelBtn   = document.getElementById('cancel-btn');
+
+  let selectedFile = null;
+
+  // ─── FIX: Drag & drop trên label ───
+  // preventDefault trên dragover để bật drop
+  dropZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.add('drag-over');
+  });
+  dropZone.addEventListener('dragleave', e => {
+    e.stopPropagation();
+    dropZone.classList.remove('drag-over');
+  });
   dropZone.addEventListener('drop', e => {
     e.preventDefault();
+    e.stopPropagation();
     dropZone.classList.remove('drag-over');
     const files = e.dataTransfer.files;
     if (files.length) handleFileSelect(files[0]);
   });
-  document.getElementById('file-input').addEventListener('change', e => {
-    if (e.target.files.length) handleFileSelect(e.target.files[0]);
+
+  // ─── FIX: Lắng nghe change trên file input ───
+  fileInput.addEventListener('change', e => {
+    if (e.target.files && e.target.files.length) {
+      handleFileSelect(e.target.files[0]);
+    }
   });
 
-  let selectedFile = null;
+  // ─── Upload button ───
+  uploadBtn.addEventListener('click', uploadFile);
 
+  // ─── Cancel button ───
+  cancelBtn.addEventListener('click', cancelUpload);
+
+  // ─── Refresh button ───
+  document.getElementById('refresh-btn').addEventListener('click', loadGallery);
+
+  // ─── Lightbox close ───
+  document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+
+  // ─── handleFileSelect ───
   function handleFileSelect(file) {
-    if (!file.type.startsWith('image/')) { showToast('Chỉ chấp nhận file ảnh!', 'error'); return; }
+    if (!file.type.startsWith('image/')) {
+      showToast('Chỉ chấp nhận file ảnh!', 'error');
+      return;
+    }
     selectedFile = file;
     const reader = new FileReader();
     reader.onload = ev => {
-      document.getElementById('preview-img').src = ev.target.result;
-      document.getElementById('preview-area').style.display = 'block';
+      previewImg.src = ev.target.result;
+      previewArea.style.display = 'block';
+      dropZone.style.display = 'none'; // ẩn drop-zone khi đã chọn ảnh
       document.getElementById('progress-wrap').style.display = 'none';
       document.getElementById('progress-bar-fill').style.width = '0%';
     };
     reader.readAsDataURL(file);
   }
 
+  // ─── cancelUpload ───
   function cancelUpload() {
     selectedFile = null;
-    document.getElementById('preview-area').style.display = 'none';
-    document.getElementById('file-input').value = '';
+    previewArea.style.display = 'none';
+    dropZone.style.display = 'block'; // hiện lại drop-zone
+    fileInput.value = '';             // reset input để có thể chọn lại cùng file
     document.getElementById('uploader-name').value = '';
+    document.getElementById('progress-wrap').style.display = 'none';
+    document.getElementById('progress-bar-fill').style.width = '0%';
   }
 
-  // ─── BUG FIX 1: Hàm setProgress bị thiếu hoàn toàn trong bản gốc ───
+  // ─── setProgress ───
   function setProgress(percent, label) {
     document.getElementById('progress-bar-fill').style.width = percent + '%';
     document.getElementById('progress-label').textContent = label;
   }
 
-  // ─── Upload ───
+  // ─── uploadFile ───
   async function uploadFile() {
     if (!selectedFile) {
       showToast('Hãy chọn ảnh trước!', 'error');
       return;
     }
-    if (!CLOUD_NAME || !UPLOAD_PRESET) {
-      showToast('Thiếu cấu hình Cloudinary!', 'error');
-      return;
-    }
 
-    const uploadBtn = document.getElementById('upload-btn');
     const name = (document.getElementById('uploader-name').value.trim() || 'Ẩn danh')
-      .replace(/[^a-zA-Z0-9À-ỹ ]/g, '');
+      .replace(/[^a-zA-Z0-9À-ỹ\s]/g, '').trim();
 
     const formData = new FormData();
     formData.append('file', selectedFile);
@@ -561,11 +632,10 @@
     formData.append('context', `uploader=${name}`);
 
     uploadBtn.disabled = true;
+    cancelBtn.disabled = true;
     document.getElementById('progress-wrap').style.display = 'block';
-    setProgress(10, 'Đang chuẩn bị upload...');
+    setProgress(5, 'Đang chuẩn bị upload...');
 
-    // ─── BUG FIX 2: Dùng XMLHttpRequest để có progress thực ───
-    // fetch() không hỗ trợ upload progress, phải dùng XHR
     try {
       await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
@@ -579,7 +649,8 @@
 
         xhr.addEventListener('load', () => {
           if (xhr.status >= 200 && xhr.status < 300) {
-            const data = JSON.parse(xhr.responseText);
+            let data;
+            try { data = JSON.parse(xhr.responseText); } catch(_) { reject(new Error('Phản hồi không hợp lệ')); return; }
             if (data.error) {
               reject(new Error(data.error.message));
             } else {
@@ -596,10 +667,10 @@
         });
 
         xhr.addEventListener('error', () => reject(new Error('Lỗi kết nối mạng')));
-        xhr.addEventListener('timeout', () => reject(new Error('Upload timeout')));
+        xhr.addEventListener('timeout', () => reject(new Error('Upload timeout — thử lại nhé')));
 
         xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`);
-        xhr.timeout = 60000; // 60 giây
+        xhr.timeout = 60000;
         xhr.send(formData);
       });
 
@@ -617,10 +688,11 @@
       setProgress(0, '');
     } finally {
       uploadBtn.disabled = false;
+      cancelBtn.disabled = false;
     }
   }
 
-  // ─── Gallery ───
+  // ─── loadGallery ───
   async function loadGallery() {
     if (CLOUD_NAME === 'YOUR_CLOUD_NAME') return;
 
@@ -632,9 +704,8 @@
     grid.innerHTML = '';
     empty.style.display = 'none';
 
-    // Show skeletons
-    const skeletons = [180,240,160,220,200,170,250,190];
-    skeletons.forEach(h => {
+    // Skeletons
+    [180,240,160,220,200,170,250,190].forEach(h => {
       const s = document.createElement('div');
       s.className = 'skeleton';
       s.style.height = h + 'px';
@@ -642,14 +713,12 @@
     });
 
     try {
-      // Cloudinary tag-based listing
-      // Yêu cầu: Settings → Security → Restricted media types → bỏ tick "Resource list"
-      const url = `https://res.cloudinary.com/${CLOUD_NAME}/image/list/${GALLERY_TAG}.json`;
-      const res = await fetch(url + '?t=' + Date.now());
+      const url = `https://res.cloudinary.com/${CLOUD_NAME}/image/list/${GALLERY_TAG}.json?t=${Date.now()}`;
+      const res = await fetch(url);
 
       if (!res.ok) {
         if (res.status === 401 || res.status === 403) {
-          throw new Error('Cần bật "Resource list": Cloudinary Settings → Security → Restricted media types → bỏ tick Resource list');
+          throw new Error('Cần bật "Resource list": Cloudinary → Settings → Security → Restricted media types → bỏ tick Resource list → Save');
         }
         throw new Error(`HTTP ${res.status}`);
       }
@@ -663,42 +732,40 @@
         document.getElementById('photo-count').textContent = '';
       } else {
         document.getElementById('photo-count').textContent = `${resources.length} ảnh`;
-        resources.forEach((r, i) => {
-          const card = createPhotoCard(r, i);
-          grid.appendChild(card);
-        });
+        resources.forEach((r, i) => grid.appendChild(createPhotoCard(r, i)));
       }
     } catch (e) {
       grid.innerHTML = `
-        <div style="color:rgba(255,245,228,0.6);padding:24px;font-size:0.85rem;line-height:1.7;background:rgba(0,0,0,0.2);border-radius:8px;">
+        <div style="color:rgba(255,245,228,0.7);padding:24px;font-size:0.85rem;line-height:1.9;background:rgba(0,0,0,0.25);border-radius:8px;grid-column:1/-1;">
           ⚠️ <strong>Không tải được gallery</strong><br><br>
           ${e.message}<br><br>
-          <strong>Cách fix:</strong> Cloudinary Dashboard → Settings → Security →
-          Restricted media types → <strong>bỏ tick "Resource list"</strong> → Save.
+          <strong>Các bước kiểm tra:</strong><br>
+          1. Cloudinary Dashboard → Settings → Security → Restricted media types → <strong>bỏ tick "Resource list"</strong> → Save<br>
+          2. Đảm bảo Upload Preset là <strong>Unsigned</strong><br>
+          3. Kiểm tra CLOUD_NAME và UPLOAD_PRESET trong file HTML
         </div>`;
     }
 
     btn.classList.remove('spinning');
   }
 
+  // ─── createPhotoCard ───
   function createPhotoCard(resource, index) {
     const card = document.createElement('div');
     card.className = 'photo-card';
     card.style.animationDelay = (index * 60) + 'ms';
 
     const baseUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload`;
-    const transforms = 'q_auto,f_auto,w_600';
-    const imgUrl = `${baseUrl}/${transforms}/${resource.public_id}`;
+    const imgUrl  = `${baseUrl}/q_auto,f_auto,w_600/${resource.public_id}`;
 
-    let uploaderName = '';
-    if (resource.context?.custom?.uploader) {
-      uploaderName = '— ' + resource.context.custom.uploader;
-    }
+    const uploaderName = resource.context?.custom?.uploader
+      ? '— ' + resource.context.custom.uploader
+      : '— Ẩn danh';
 
     card.innerHTML = `
       <img src="${imgUrl}" alt="Photobooth photo" loading="lazy" />
       <div class="overlay">
-        <span class="overlay-name">${uploaderName || '— Ẩn danh'}</span>
+        <span class="overlay-name">${uploaderName}</span>
       </div>
     `;
     card.addEventListener('click', () => openLightbox(
@@ -714,7 +781,10 @@
     document.getElementById('lightbox-caption').textContent = caption;
     document.getElementById('lightbox').classList.add('active');
   }
-  function closeLightbox() { document.getElementById('lightbox').classList.remove('active'); }
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('active');
+    document.getElementById('lightbox-img').src = '';
+  }
   document.getElementById('lightbox').addEventListener('click', e => {
     if (e.target === e.currentTarget) closeLightbox();
   });
