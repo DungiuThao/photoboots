@@ -734,17 +734,7 @@
         document.getElementById('photo-count').textContent = `${resources.length} ảnh`;
         resources.forEach((r, i) => grid.appendChild(createPhotoCard(r, i)));
       }
-    } catch (e) {
-      grid.innerHTML = `
-        <div style="color:rgba(255,245,228,0.7);padding:24px;font-size:0.85rem;line-height:1.9;background:rgba(0,0,0,0.25);border-radius:8px;grid-column:1/-1;">
-          ⚠️ <strong>Không tải được gallery</strong><br><br>
-          ${e.message}<br><br>
-          <strong>Các bước kiểm tra:</strong><br>
-          1. Cloudinary Dashboard → Settings → Security → Restricted media types → <strong>bỏ tick "Resource list"</strong> → Save<br>
-          2. Đảm bảo Upload Preset là <strong>Unsigned</strong><br>
-          3. Kiểm tra CLOUD_NAME và UPLOAD_PRESET trong file HTML
-        </div>`;
-    }
+    } catch (e) 
 
     btn.classList.remove('spinning');
   }
